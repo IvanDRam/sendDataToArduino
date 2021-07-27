@@ -1,0 +1,106 @@
+/** sendDataToArduino.cs  interface que envía un dato vía puerto serial y 
+administra un IO digital en un microcontrolador.
+
+Descripción.  
+
+Se presenta una interface 2D con un botón que al ser presionado onClick()
+envia vía puerto seria una cadena de caracteres.
+
+    |-----------|
+    |  ON/OFF   |---onClick(SetPayLoad(IO13))--->comm---IO13---ledEmpotrado---0V     
+    |-----------|  
+
+  Dato     PinOut   Microcontrolador
+ enviado           
+  ON/OFF    13    ledEmpotrado.  Si recibe etiqueta io13  enciende en alto led empotrado
+
+
+  1] Crear un GameObject => Renombrar a SerialObj => crear y adjuntar Script "sendDataToArduino.cs"
+
+            - Procedimiento para adjuntar SerialObj al Btn_ON_OFF_IO13         
+  
+  1] Canvas
+       |¬Btn_ON_OFF_IO13, click (+)
+           |¬OnClick() <= adjuntar SerialObj en el campo: Select Object          
+  2] En el campo No Function seleccionar: sendDataToArduino/sendPayLoad(string)
+  3] Teclear el argumento "IO13" para sendPayLoad
+
+            - Procedimiento para adjuntar Script al Btn_ClosePort         
+  1] Canvas
+       |¬Btn_ClosePort, click (+)
+           |¬OnClick() <= adjuntar SerialObj en el campo: Select Object          
+  2] En el campo No Function seleccionar: sendDataToArduino/closePort()
+  
+ Componente Arduino
+ sendDataToArduino.ino  lee puerto serial y manipula IO digitales  
+ */
+
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using System;
+using UnityEngine.UI;
+using System.IO.Ports; // Edit/Project Setting.../Player/Configuration/Api Compatibility Lever*  /.Net4.x Equivalent
+
+public class sendDataToArduino : MonoBehaviour
+{
+    SerialPort serialPort;
+    public string portName; 
+    //bool serialPortIsConnected = false;
+    public string dataInput = " ";
+    void Start()
+    {
+        ConfigSerialPort();
+        serialPort.Open();                // abre puerto de comunicaciones 
+        serialPortIsConnected = true;     // habilita rececepción
+        Debug.Log("Serial port: O P E N ");   // monitoriza estado del puerto
+    }
+    void OnDestroy()  // 
+    {
+      ClosePort();
+    }
+    void Update()
+    {
+      //print($"readBuffer =  {serialPort}");
+    }
+
+    [ContextMenu("ReadLine")]
+    public void ReadLine()
+    {
+      dataInput = serialPort.ReadLine();
+    }
+    
+
+
+    /* configura parámetros de Txd,Rxd asíncrona */
+    private void ConfigSerialPort()
+    {
+        serialPort = new SerialPort(portName,9600, Parity.None,8 ,StopBits.One ); // instancia de puerto serial
+        serialPort.Handshake = Handshake.None;
+        serialPort.RtsEnable = true;
+        serialPort.ReadTimeout = 200;    //sets the number of milliseconds before a time-out occurs when a read operation does not finish.
+        serialPort.WriteTimeout = 200;
+        //serialPort.ReadBufferSize = 4;
+    }
+
+    /*envía payLoad hacia arduino*/
+    public void SetPayLoad(string payload)
+    {
+       serialPort.WriteLine(payload);    		// transmite comando
+       Debug.Log("Dato enviado: " + payload);   //monitor
+       ReadLine();
+    }
+
+    /* retorna e imprime en consola un mensaje del serialPort */
+    public void GetPayLoad()
+    {
+        Debug.Log("Read input data: " + serialPort.ReadLine()); // imprime en consola
+    }
+
+    /*libera puerto serial*/
+    public void ClosePort()
+    {
+        serialPort.Close();
+        Debug.Log("Serial port: C L O S E ");
+    }
+}
